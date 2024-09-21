@@ -1,0 +1,11 @@
+env
+.vscode/
+*__pycache__/
+*.pyc
+*.DS_Store
+CUSUM/LabeledData
+CUSUM/feaData
+CUSUM/min_filtered
+MinDataSet
+stockDataSet
+chipDataSet
