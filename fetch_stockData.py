@@ -68,13 +68,13 @@ def fetch_and_save(stock_id, start_year, data_folder):
 # 主程序
 def main():
     # 读取股票 ID 列表
-    df = pd.read_csv('Stock/taiwan_stock_codes.csv', dtype={'StockID': str})
+    df = pd.read_csv('taiwan_stock_codes.csv', dtype={'StockID': str})
 
     # 设置开始年份
     start_year = 2008
 
     # 确保数据文件夹存在
-    data_folder = 'Stock/stockDataSet'
+    data_folder = 'stockDataSet'
     os.makedirs(data_folder, exist_ok=True)
 
     tasks = [(row['StockID'], start_year, data_folder) for index, row in df.iterrows()]

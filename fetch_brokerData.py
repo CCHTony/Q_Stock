@@ -1,9 +1,6 @@
 import os
-import time
 import pandas as pd
 from datetime import datetime, timedelta
-from FinMind.data import DataLoader
-from tqdm import tqdm
 import requests
 
 # 設定 token
@@ -32,7 +29,7 @@ def fetch_daily_report(stock_id, date, token):
         return pd.DataFrame()
 
 # 定義函數來保存資料
-def fetch_and_save(stock_id, data_folder, api_call_count, api, token):
+def fetch_and_save(stock_id, data_folder, api_call_count, token):
     end_date = datetime.now()
 
     csv_file_path = os.path.join(data_folder, f'{stock_id}.csv')
@@ -43,10 +40,10 @@ def fetch_and_save(stock_id, data_folder, api_call_count, api, token):
         last_date = existing_data['date'].max()
         start_date = last_date + timedelta(days=1)
     else:
-        start_date = datetime.strptime('2019-01-01', '%Y-%m-%d')
+        start_date = datetime.strptime('2023-06-30', '%Y-%m-%d')
         existing_data = pd.DataFrame()
 
-    if start_date.date() >= end_date.date():
+    if start_date.date() > end_date.date():
         print(f"No new data needed for {stock_id}. Latest data is up-to-date.")
         return api_call_count
 
@@ -54,6 +51,7 @@ def fetch_and_save(stock_id, data_folder, api_call_count, api, token):
 
     current_date = start_date
     while current_date <= end_date and api_call_count < 6000:
+        print(f'\rfetching {current_date}', end='')
         # 嘗試使用 requests 獲取每日交易報告
         df_daily_report = fetch_daily_report(stock_id, current_date, token)
         if not df_daily_report.empty:
@@ -72,21 +70,21 @@ def fetch_and_save(stock_id, data_folder, api_call_count, api, token):
 
 # 主程序
 def main():
-    df = pd.read_csv('Stock/taiwan_stock_codes.csv', dtype={'StockID': str})
-    data_folder = 'Stock/MinDataSet'
+    df = pd.read_csv('taiwan_stock_codes.csv', dtype={'StockID': str})
+    data_folder = 'brokerDataSet'
     os.makedirs(data_folder, exist_ok=True)
     token = token2
-    api = DataLoader()
-    api.login_by_token(api_token=token)
     api_call_count = 0
-    for _, row in tqdm(df.iterrows()):
+    for _, row in df.iterrows():
+        
         if api_call_count >= 6000:
             print("Switching API token...")
-            time.sleep(3600)  # 等待一小時
+            # time.sleep(3600)  # 等待一小時
             api_call_count = 0  # 重置API呼叫次數
             token = token1 if token == token2 else token2
         stock_id = row['StockID']
-        api_call_count = fetch_and_save(stock_id, data_folder, api_call_count, api, token)
+        print(f'\nprocess {stock_id}')
+        api_call_count = fetch_and_save(stock_id, data_folder, api_call_count, token)
 
 if __name__ == "__main__":
     main()
