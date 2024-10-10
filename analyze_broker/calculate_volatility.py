@@ -62,7 +62,7 @@ volatility_df = pd.DataFrame(volatility_list)
 volatility_df.sort_values('Volatility', ascending=False, inplace=True)
 
 # 取前10名波動性最大的股票
-top_10_volatility = volatility_df.head(10)
+top_10_volatility = volatility_df.head(15)
 
 # 顯示結果
 print("近期波動性最大的前10名股票：")

@@ -5,14 +5,14 @@ from collections import defaultdict
 from tqdm import tqdm
 from datetime import datetime
 
-stock_code = 3665
+stock_code = 6405
 
 # 读取数据集
 data = pd.read_csv(f'brokerDataSet/{stock_code}.csv')
 
 # 指定時間範圍
-start_date = datetime.strptime('2024-09-24', '%Y-%m-%d').date()
-end_date = datetime.strptime('2024-09-25', '%Y-%m-%d').date()
+start_date = datetime.strptime('2024-08-28', '%Y-%m-%d').date()
+end_date = datetime.strptime('2024-09-27', '%Y-%m-%d').date()
 
 # 计算每笔交易的净持有量（买入 - 卖出）
 data['net_hold'] = data['buy'] - data['sell']

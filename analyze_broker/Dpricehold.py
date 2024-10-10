@@ -5,10 +5,10 @@ import plotly.graph_objects as go
 from plotly.colors import sample_colorscale
 import plotly.express as px
 
-stock_code = 3665
+stock_code = 1718
 # 步驟 8：輸入時間範圍
-start_date = datetime.strptime('2024-09-24', '%Y-%m-%d').date()
-end_date = datetime.strptime('2024-09-25', '%Y-%m-%d').date()
+start_date = datetime.strptime('2024-09-27', '%Y-%m-%d').date()
+end_date = datetime.strptime('2024-09-27', '%Y-%m-%d').date()
 
 # 步驟 2：讀取數據集
 data = pd.read_csv(f'brokerDataSet/{stock_code}.csv')
@@ -30,7 +30,7 @@ grouped = data.groupby(['date', 'price', 'securities_trader']).agg({
 dates = grouped['date'].dt.date.unique()
 
 # 步驟 7：定義要顯示的前N名
-TOP_N = 1000
+TOP_N = 10
 
 # 步驟 9：篩選日期範圍內的數據
 filtered_dates = [date for date in dates if start_date <= date <= end_date]

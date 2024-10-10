@@ -5,29 +5,21 @@ import plotly.graph_objects as go
 from plotly.colors import sample_colorscale
 import plotly.express as px
 
-stock_code = 2540
+stock_code = 6405
 # 步驟 8：輸入時間範圍
-start_date = datetime.strptime('2024-09-10', '%Y-%m-%d').date()
-end_date = datetime.strptime('2024-09-23', '%Y-%m-%d').date()
+start_date = datetime.strptime('2024-10-04', '%Y-%m-%d').date()
+end_date = datetime.strptime('2024-10-04', '%Y-%m-%d').date()
 
 # 步驟 2：讀取數據集
 data = pd.read_csv(f'brokerDataSet/{stock_code}.csv')
 
-# 步驟 3：計算每筆交易的淨持有量（買入 - 賣出）
-data['net_hold'] = data['buy'] - data['sell']
-
 # 步驟 4：轉換 'date' 列為 datetime 格式，便於日期範圍過濾
 data['date'] = pd.to_datetime(data['date'])
 
-# 步驟 4.1：按 'securities_trader'、'price'、'date' 排序
-data.sort_values(['securities_trader', 'price', 'date'], inplace=True)
-
-# 步驟 4.2：計算每個券商在每個價格下的累積淨持有量
-data['cumulative_net_hold'] = data.groupby(['securities_trader', 'price'])['net_hold'].cumsum()
-
-# 步驟 5：按日期、價格和券商分組，獲取最新的累積淨持有量
+# 步驟 5：按日期、價格和券商分組，計算每個券商在每個價格和日期下的買入、賣出和淨持有量
 grouped = data.groupby(['date', 'price', 'securities_trader']).agg({
-    'cumulative_net_hold': 'last'  # 獲取最新的累積淨持有量
+    'buy': 'sum',
+    'sell': 'sum',
 }).reset_index()
 
 # 步驟 6：獲取所有唯一的日期
@@ -39,9 +31,9 @@ TOP_N = 5
 # 步驟 9：篩選日期範圍內的數據
 filtered_dates = [date for date in dates if start_date <= date <= end_date]
 
-# 獲取所有可能的買入和賣出的券商（基於累積淨持有量）
-buy_traders = grouped[grouped['cumulative_net_hold'] > 0]['securities_trader'].unique()
-sell_traders = grouped[grouped['cumulative_net_hold'] < 0]['securities_trader'].unique()
+# 獲取所有可能的買入和賣出的券商
+buy_traders = grouped[grouped['buy'] > 0]['securities_trader'].unique()
+sell_traders = grouped[grouped['sell'] > 0]['securities_trader'].unique()
 
 num_buy_traders = len(buy_traders)
 num_sell_traders = len(sell_traders)
@@ -62,17 +54,15 @@ sell_color_map = {trader: color for trader, color in zip(sell_traders, sell_colo
 LABEL_THRESHOLD = 0.05  # 可以根據需要調整
 
 for date in filtered_dates:
-    # 選擇截至當天的累積數據
-    cumulative_data = grouped[grouped['date'] <= pd.to_datetime(date)]
-    
     # 選擇當天的數據
-    daily_data = cumulative_data[cumulative_data['date'] == pd.to_datetime(date)]
+    daily_data = grouped[grouped['date'].dt.date == date]
     
     # 獲取當天的所有價格，並排序
     prices = sorted(daily_data['price'].unique())
     
-    # 計算每個價格的總累積淨持有量
-    price_total_net_hold = daily_data.groupby('price')['cumulative_net_hold'].sum().to_dict()
+    # 計算每個價格的總買入和賣出量
+    price_total_buy = daily_data.groupby('price')['buy'].sum().to_dict()
+    price_total_sell = daily_data.groupby('price')['sell'].sum().to_dict()
     
     # 準備買入和賣出的數據
     buy_data = {}
@@ -81,47 +71,47 @@ for date in filtered_dates:
     for price in prices:
         price_data = daily_data[daily_data['price'] == price]
         
-        # 獲取前TOP_N名累積淨持有量 > 0 的交易商
-        top_buyers = price_data[price_data['cumulative_net_hold'] > 0].sort_values(by='cumulative_net_hold', ascending=False).head(TOP_N)
+        # 獲取前TOP_N名買入量 > 0 的交易商
+        top_buyers = price_data[price_data['buy'] > 0].sort_values(by='buy', ascending=False).head(TOP_N)
         
-        # 獲取前TOP_N名累積淨持有量 < 0 的交易商
-        top_sellers = price_data[price_data['cumulative_net_hold'] < 0].sort_values(by='cumulative_net_hold').head(TOP_N)  # 最負值在前
+        # 獲取前TOP_N名賣出量 > 0 的交易商
+        top_sellers = price_data[price_data['sell'] > 0].sort_values(by='sell', ascending=False).head(TOP_N)
         
         # 準備買入數據
         for _, row in top_buyers.iterrows():
             trader = row['securities_trader']
-            net_hold = row['cumulative_net_hold']
+            buy_volume = row['buy']
             if trader not in buy_data:
-                buy_data[trader] = {'price': [], 'net_hold': []}
+                buy_data[trader] = {'price': [], 'buy': []}
             buy_data[trader]['price'].append(price)
-            buy_data[trader]['net_hold'].append(net_hold)
+            buy_data[trader]['buy'].append(buy_volume)
         
         # 準備賣出數據
         for _, row in top_sellers.iterrows():
             trader = row['securities_trader']
-            net_hold = row['cumulative_net_hold']
+            sell_volume = row['sell']
             if trader not in sell_data:
-                sell_data[trader] = {'price': [], 'net_hold': []}
+                sell_data[trader] = {'price': [], 'sell': []}
             sell_data[trader]['price'].append(price)
-            sell_data[trader]['net_hold'].append(net_hold)
+            sell_data[trader]['sell'].append(sell_volume)
     
     # 初始化繪圖
     fig = go.Figure()
     
     # 繪製買入的堆疊橫向柱狀圖
     for trader, data_dict in buy_data.items():
-        net_holds = data_dict['net_hold']
+        buy_volumes = data_dict['buy']
         prices_list = data_dict['price']
         texts = []
-        for net_hold, price in zip(net_holds, prices_list):
-            total_net_hold = price_total_net_hold.get(price, 0)
-            if total_net_hold > 0 and (net_hold / total_net_hold) > LABEL_THRESHOLD:
-                text = f"{trader}: {net_hold}"
+        for buy_volume, price in zip(buy_volumes, prices_list):
+            total_buy_volume = price_total_buy.get(price, 0)
+            if total_buy_volume > 0 and (buy_volume / total_buy_volume) > LABEL_THRESHOLD:
+                text = f"{trader}: {buy_volume}"
             else:
                 text = ''
             texts.append(text)
         fig.add_trace(go.Bar(
-            x=net_holds,
+            x=buy_volumes,
             y=prices_list,
             name=f'{trader} 買入',
             orientation='h',
@@ -135,18 +125,19 @@ for date in filtered_dates:
     
     # 繪製賣出的堆疊橫向柱狀圖（負方向）
     for trader, data_dict in sell_data.items():
-        net_holds = data_dict['net_hold']
+        sell_volumes = data_dict['sell']
         prices_list = data_dict['price']
         texts = []
-        for net_hold, price in zip(net_holds, prices_list):
-            total_net_hold = price_total_net_hold.get(price, 0)
-            if total_net_hold < 0 and (abs(net_hold) / abs(total_net_hold)) > LABEL_THRESHOLD:
-                text = f"{trader}: {abs(net_hold)}"
+        for sell_volume, price in zip(sell_volumes, prices_list):
+            total_sell_volume = price_total_sell.get(price, 0)
+            if total_sell_volume > 0 and (sell_volume / total_sell_volume) > LABEL_THRESHOLD:
+                text = f"{trader}: {sell_volume}"
             else:
                 text = ''
             texts.append(text)
+        # 繪製負的賣出量
         fig.add_trace(go.Bar(
-            x=net_holds,  # net_hold 已經是負值
+            x=[-v for v in sell_volumes],
             y=prices_list,
             name=f'{trader} 賣出',
             orientation='h',
@@ -162,12 +153,12 @@ for date in filtered_dates:
     fig.update_layout(
         barmode='relative',
         title=dict(
-            text=f'{date} 券商累積淨持有量分佈',
+            text=f'{date} 券商買入和賣出量分佈',
             x=0.5,
             xanchor='center',
             font=dict(size=24, family='Hiragino Sans GB', color='black'),
         ),
-        xaxis_title='累積淨持有量',
+        xaxis_title='交易量',
         yaxis_title='價格',
         yaxis=dict(
             categoryorder='category descending',

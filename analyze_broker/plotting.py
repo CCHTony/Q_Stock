@@ -6,10 +6,10 @@ from plotly.colors import sample_colorscale
 import plotly.express as px
 
 # 參數設置
-stock_code = 3665
+stock_code = 6405
 # 指定時間範圍
-start_date = datetime.strptime('2024-09-24', '%Y-%m-%d').date()
-end_date = datetime.strptime('2024-09-25', '%Y-%m-%d').date()
+start_date = datetime.strptime('2024-09-26', '%Y-%m-%d').date()
+end_date = datetime.strptime('2024-09-27', '%Y-%m-%d').date()
 # 定義要顯示的前N名
 TOP_N = 1000
 # 顏色映射範圍
