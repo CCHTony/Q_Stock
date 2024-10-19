@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import os
 
-from tabs import tab1, tab2, tab3, tab4, tab5, tab6, tab7
+from tabs import tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8
 
 # 設定頁面配置
 st.set_page_config(page_title='股票交易分析', layout='wide')
@@ -14,10 +14,12 @@ st.title('股票交易前 N 大買家和賣家分析')
 
 # 初始化 session_state 中的股票代碼
 if 'stock_code' not in st.session_state:
-    st.session_state.stock_code = '1101'
+    st.session_state.stock_code = '6405'
 
 # 輸入股票代碼
 stock_code = st.text_input('輸入股票代碼', st.session_state.stock_code)
+# 檢查是否更改了股票代碼
+stock_code_changed = (stock_code != st.session_state.stock_code)
 st.session_state.stock_code = stock_code  # 更新 session_state
 
 # 檢查檔案是否存在
@@ -77,7 +79,7 @@ else:
                 st.session_state.N = N  # 更新 session_state
 
                 # 佈局選項卡，包括新增的 tab7
-                tab1_, tab2_, tab3_, tab4_, tab5_, tab6_, tab7_ = st.tabs(['大買家', '大賣家', '買超', '賣超', '持有量變化', '交易量分佈', '追蹤特定券商'])
+                tab1_, tab2_, tab3_, tab4_, tab5_, tab6_, tab7_, tab8_ = st.tabs(['大買家', '大賣家', '買超', '賣超', '持有量變化', '交易量分佈', '追蹤特定券商', '淨持有量分佈'])
 
                 with tab1_:
                     tab1.render_tab1(df_period, N)
@@ -136,3 +138,6 @@ else:
                     st.session_state.selected_track_traders = selected_track_traders
 
                     tab7.render_tab7(df_period, selected_track_traders)
+                    
+                with tab8_:
+                    tab8.render_tab8(df_period, N)

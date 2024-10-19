@@ -45,18 +45,3 @@ def render_tab3(df_period, N):
                 title=f'近 {days} 天買超'
             )
             st.plotly_chart(fig_buy_super, use_container_width=True)
-
-    # 显示全部数据
-    st.markdown('### 全部')
-    grouped_all = df_period.groupby('securities_trader').agg({'buy': 'sum', 'sell': 'sum'}).reset_index()
-    grouped_all['buy_super'] = grouped_all['buy'] - grouped_all['sell']
-    top_buy_super_all = grouped_all.sort_values(by='buy_super', ascending=False).head(N)
-
-    fig_buy_super_all = px.bar(
-        top_buy_super_all,
-        x='securities_trader',
-        y='buy_super',
-        labels={'buy_super': '買超量', 'securities_trader': '券商'},
-        title='全部買超'
-    )
-    st.plotly_chart(fig_buy_super_all, use_container_width=True)
