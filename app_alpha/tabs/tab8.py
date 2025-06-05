@@ -5,21 +5,30 @@ import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
 from plotly.colors import sample_colorscale
+import pandas as pd
 
 def render_tab8(df_period, N):
     st.subheader('淨持有量分佈')
-    
+
     # 定義 min_date 和 max_date
-    min_date = df_period['date'].min()
-    max_date = df_period['date'].max()
+    min_date = pd.to_datetime(df_period['date']).min()
+    max_date = pd.to_datetime(df_period['date']).max()
 
     # 初始化 session_state 中的 'cumulative_entries_tab8' 如果尚未存在
     if 'cumulative_entries_tab8' not in st.session_state:
-        st.session_state.cumulative_entries_tab8 = [{'date': None, 'cumulative_days': 3}]
+        st.session_state.cumulative_entries_tab8 = [{
+            'mode': 'days',
+            'date': None,
+            'cumulative_days': 3
+        }]
 
     # 定義一個函數來添加新條目
     def add_entry():
-        st.session_state.cumulative_entries_tab8.append({'date': None, 'cumulative_days': 3})
+        st.session_state.cumulative_entries_tab8.append({
+            'mode': 'days',
+            'date': None,
+            'cumulative_days': 3
+        })
 
     # 定義一個函數來移除條目
     def remove_entry(index):
@@ -32,82 +41,160 @@ def render_tab8(df_period, N):
     # 迭代並顯示所有條目
     for idx, entry in enumerate(st.session_state.cumulative_entries_tab8):
         with st.container():
-            cols = st.columns([1, 1, 0.2])
+            # 調整佈局：將選擇模式和日期選擇放在同一行
+            cols = st.columns([1, 1, 1, 0.2])
             with cols[0]:
-                # 日期選擇
-                date_key = f'date_tab8_{idx}'
-                current_date = st.session_state.cumulative_entries_tab8[idx]['date']
-                # 驗證日期是否在範圍內
-                if current_date is not None and not (min_date <= current_date <= max_date):
-                    st.session_state.cumulative_entries_tab8[idx]['date'] = min_date
-                    current_date = min_date
-                selected_date = st.date_input(
-                    f'選擇日期 #{idx + 1}',
-                    value=current_date or min_date,
-                    min_value=min_date,
-                    max_value=max_date,
-                    key=date_key
+                # 模式選擇：回溯天數或日期範圍
+                mode_key = f'mode_tab8_{idx}'
+                mode = st.selectbox(
+                    f'選擇模式 #{idx + 1}',
+                    options=['回溯天數', '日期範圍'],
+                    index=0 if entry['mode'] == 'days' else 1,
+                    key=mode_key
                 )
-            with cols[1]:
-                # 回朔天數
-                days_key = f'days_tab8_{idx}'
-                cumulative_days = st.number_input(
-                    f'回朔天數 #{idx + 1}',
-                    min_value=1,
-                    max_value=30,
-                    value=st.session_state.cumulative_entries_tab8[idx]['cumulative_days'],
-                    step=1,
-                    key=days_key
-                )
-            with cols[2]:
+                st.session_state.cumulative_entries_tab8[idx]['mode'] = 'days' if mode == '回溯天數' else 'range'
+
+            if st.session_state.cumulative_entries_tab8[idx]['mode'] == 'days':
+                with cols[1]:
+                    # 日期選擇
+                    date_key = f'date_tab8_{idx}'
+                    current_date = st.session_state.cumulative_entries_tab8[idx]['date']
+                    # 驗證日期是否在範圍內
+                    if current_date is not None and not (min_date <= pd.to_datetime(current_date) <= max_date):
+                        st.session_state.cumulative_entries_tab8[idx]['date'] = min_date
+                        current_date = min_date
+                    selected_date = st.date_input(
+                        f'選擇日期 #{idx + 1}',
+                        value=pd.to_datetime(current_date) if current_date else min_date,
+                        min_value=min_date,
+                        max_value=max_date,
+                        key=date_key
+                    )
+                with cols[2]:
+                    # 回溯天數
+                    days_key = f'days_tab8_{idx}'
+                    cumulative_days = st.number_input(
+                        f'回溯天數 #{idx + 1}',
+                        min_value=1,
+                        max_value=30,
+                        value=st.session_state.cumulative_entries_tab8[idx].get('cumulative_days', 3),
+                        step=1,
+                        key=days_key
+                    )
+            elif st.session_state.cumulative_entries_tab8[idx]['mode'] == 'range':
+                with cols[1]:
+                    # 開始日期選擇
+                    start_date_key = f'start_date_tab8_{idx}'
+                    current_start_date = st.session_state.cumulative_entries_tab8[idx].get('start_date', min_date)
+                    selected_start_date = st.date_input(
+                        f'開始日期 #{idx + 1}',
+                        value=pd.to_datetime(current_start_date) if current_start_date else min_date,
+                        min_value=min_date,
+                        max_value=max_date,
+                        key=start_date_key
+                    )
+                with cols[2]:
+                    # 結束日期選擇
+                    end_date_key = f'end_date_tab8_{idx}'
+                    current_end_date = st.session_state.cumulative_entries_tab8[idx].get('end_date', max_date)
+                    selected_end_date = st.date_input(
+                        f'結束日期 #{idx + 1}',
+                        value=pd.to_datetime(current_end_date) if current_end_date else max_date,
+                        min_value=min_date,
+                        max_value=max_date,
+                        key=end_date_key
+                    )
+            with cols[3]:
                 # 移除條目按鈕，並指定唯一的 key
                 if idx != 0:
                     st.button('❌', key=f'remove_tab8_{idx}', on_click=remove_entry, args=(idx,))
 
             # 更新 session_state
-            st.session_state.cumulative_entries_tab8[idx]['date'] = selected_date
-            st.session_state.cumulative_entries_tab8[idx]['cumulative_days'] = cumulative_days
+            if st.session_state.cumulative_entries_tab8[idx]['mode'] == 'days':
+                st.session_state.cumulative_entries_tab8[idx]['date'] = selected_date
+                st.session_state.cumulative_entries_tab8[idx]['cumulative_days'] = cumulative_days
+            elif st.session_state.cumulative_entries_tab8[idx]['mode'] == 'range':
+                st.session_state.cumulative_entries_tab8[idx]['start_date'] = selected_start_date
+                st.session_state.cumulative_entries_tab8[idx]['end_date'] = selected_end_date
 
     # 選擇交易日期和回朔天數後生成圖表
     st.markdown('---')
     st.write('### 淨持有量分佈圖')
 
     for idx, entry in enumerate(st.session_state.cumulative_entries_tab8):
-        selected_date = entry['date']
-        cumulative_days = entry['cumulative_days']
+        if entry['mode'] == 'days':
+            selected_date = entry['date']
+            cumulative_days = entry['cumulative_days']
 
-        if selected_date is None:
-            st.warning(f'請選擇日期 #{idx + 1}。')
-            continue
+            if selected_date is None:
+                st.warning(f'請選擇日期 #{idx + 1}。')
+                continue
 
-        # 將選定日期轉換為 datetime.date 格式
-        current_date = selected_date
+            # 將選定日期轉換為 datetime 格式
+            current_date = pd.to_datetime(selected_date)
 
-        # 找到當前日期在所有日期中的索引
-        all_dates = sorted(df_period['date'].unique())
-        try:
-            current_index = all_dates.index(current_date)
-        except ValueError:
-            st.warning(f'選定的日期 {current_date} 不存在於資料中。')
-            continue
+            # 獲取所有唯一且排序的交易日期
+            all_dates = sorted(pd.to_datetime(df_period['date'].unique()))
+            try:
+                current_index = all_dates.index(current_date)
+            except ValueError:
+                st.warning(f'選定的日期 {current_date.date()} 不存在於資料中。')
+                continue
 
-        # 獲取當前日期及前累計天數 - 1 個交易日的索引
-        cumulative_indices = range(max(0, current_index - (cumulative_days - 1)), current_index + 1)
+            # 獲取最後 'cumulative_days' 個交易日
+            if cumulative_days > len(all_dates):
+                st.warning(f'天數 {cumulative_days} 超過可用的交易日數（最多 {len(all_dates)} 天）。將選取所有可用的交易日。')
+                selected_dates = all_dates
+            else:
+                selected_dates = all_dates[max(0, current_index - (cumulative_days - 1)): current_index + 1]
 
-        # 獲取累積的日期
-        cumulative_dates = [all_dates[i] for i in cumulative_indices]
+            # 篩選選取的交易日數據
+            df_recent = df_period[pd.to_datetime(df_period['date']).isin(selected_dates)]
 
-        # 篩選這些天的數據
-        cumulative_data = df_period[df_period['date'].isin(cumulative_dates)]
+            if df_recent.empty:
+                st.warning(f'近 {cumulative_days} 天內沒有資料。')
+                continue
+            else:
+                st.markdown(f'### 近 {cumulative_days} 天')
+
+            # 設置圖表標題
+            chart_title = f'{current_date.date()} 及前 {cumulative_days -1} 個交易日券商累積淨持有量分佈'
+
+        elif entry['mode'] == 'range':
+            start_date = entry.get('start_date', min_date)
+            end_date = entry.get('end_date', max_date)
+
+            # 將選定日期轉換為 datetime 格式
+            current_start_date = pd.to_datetime(start_date)
+            current_end_date = pd.to_datetime(end_date)
+
+            if current_start_date > current_end_date:
+                st.warning(f'開始日期 {current_start_date.date()} 不能晚於結束日期 {current_end_date.date()}。')
+                continue
+
+            # 篩選選取的交易日數據
+            df_recent = df_period[
+                (pd.to_datetime(df_period['date']) >= current_start_date) &
+                (pd.to_datetime(df_period['date']) <= current_end_date)
+            ]
+
+            if df_recent.empty:
+                st.warning(f'從 {current_start_date.date()} 到 {current_end_date.date()} 期間內沒有資料。')
+                continue
+            else:
+                st.markdown(f'### 從 {current_start_date.date()} 到 {current_end_date.date()}')
+
+            # 設置圖表標題
+            chart_title = f'從 {current_start_date.date()} 到 {current_end_date.date()} 期間券商累積淨持有量分佈'
 
         # 按價格和券商分組，計算每個券商在每個價格下的買入、賣出量
-        grouped_data = cumulative_data.groupby(['price', 'securities_trader']).agg({
+        grouped_data = df_recent.groupby(['price', 'securities_trader']).agg({
             'buy': 'sum',
             'sell': 'sum',
         }).reset_index()
 
         if grouped_data.empty:
-            st.warning(f'在日期 {current_date} 及其前 {cumulative_days -1} 個交易日沒有數據。')
+            st.warning(f'在選定的日期範圍內沒有數據。')
             continue
 
         # 計算淨持有量（買入 - 賣出）
@@ -218,7 +305,7 @@ def render_tab8(df_period, N):
         fig.update_layout(
             barmode='relative',
             title=dict(
-                text=f'{current_date} 及前 {cumulative_days -1} 個交易日券商累積淨持有量分佈',
+                text=chart_title,
                 x=0.5,
                 xanchor='center',
                 font=dict(size=24),

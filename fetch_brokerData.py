@@ -2,10 +2,11 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 import requests
+import time
+
 
 # 設定 token
-token1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRlIjoiMjAyNC0wOC0wNCAxMToyNTowNiIsInVzZXJfaWQiOiJDQ0hUb255IiwiaXAiOiI0NS4xNDQuMjI3LjU0In0.rVJ5f7QjDtRD5ajdeRj1gMF_3sNG5q-Se8BtAtTy2lA'
-token2 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRlIjoiMjAyNC0wOS0xMCAxNzowMDoxMiIsInVzZXJfaWQiOiJzaGFvaHVhMDUyNiIsImlwIjoiMTIzLjI0MS40NC40OSJ9.VFuunfUKH7LhCXfu28MEJef_9uL21Tqtw-wvK338Xiw'
+token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRlIjoiMjAyNC0wOC0wNCAxMToyNTowNiIsInVzZXJfaWQiOiJDQ0hUb255IiwiaXAiOiI0NS4xNDQuMjI3LjU0In0.rVJ5f7QjDtRD5ajdeRj1gMF_3sNG5q-Se8BtAtTy2lA'
 
 # 定義使用 requests 來獲取日報資料的函數
 def fetch_daily_report(stock_id, date, token):
@@ -71,17 +72,20 @@ def fetch_and_save(stock_id, data_folder, api_call_count, token):
 # 主程序
 def main():
     df = pd.read_csv('taiwan_stock_codes.csv', dtype={'StockID': str})
+    
+    # 隨機打亂股票代碼的順序
+    df = df.sample(frac=1).reset_index(drop=True)
+    print("股票代碼已隨機打亂。")
+    
     data_folder = 'brokerDataSet'
     os.makedirs(data_folder, exist_ok=True)
-    token = token2
     api_call_count = 0
     for _, row in df.iterrows():
         
         if api_call_count >= 6000:
             print("Switching API token...")
-            # time.sleep(3600)  # 等待一小時
+            time.sleep(3000)  # 等待一小時
             api_call_count = 0  # 重置API呼叫次數
-            token = token1 if token == token2 else token2
         stock_id = row['StockID']
         print(f'\nprocess {stock_id}')
         api_call_count = fetch_and_save(stock_id, data_folder, api_call_count, token)

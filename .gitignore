@@ -1,4 +1,4 @@
-env
+pyproject.toml
 .vscode/
 *__pycache__/
 *.pyc

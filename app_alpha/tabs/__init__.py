@@ -7,3 +7,5 @@ from .tab4 import render_tab4
 from .tab5 import render_tab5
 from .tab6 import render_tab6
 from .tab7 import render_tab7
+from .tab8 import render_tab8
+from .tab9 import render_tab9

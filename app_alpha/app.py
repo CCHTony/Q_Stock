@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import os
 
-from tabs import tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8
+from tabs import tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9
 
 # 設定頁面配置
 st.set_page_config(page_title='股票交易分析', layout='wide')
@@ -79,7 +79,7 @@ else:
                 st.session_state.N = N  # 更新 session_state
 
                 # 佈局選項卡，包括新增的 tab7
-                tab1_, tab2_, tab3_, tab4_, tab5_, tab6_, tab7_, tab8_ = st.tabs(['大買家', '大賣家', '買超', '賣超', '持有量變化', '交易量分佈', '追蹤特定券商', '淨持有量分佈'])
+                tab1_, tab2_, tab3_, tab4_, tab5_, tab6_, tab7_, tab8_, tab9_ = st.tabs(['大買家', '大賣家', '買超', '賣超', '持有量變化', '交易量分佈', '追蹤特定券商', '淨持有量分佈', '價格持有量強弱分析'])
 
                 with tab1_:
                     tab1.render_tab1(df_period, N)
@@ -120,7 +120,7 @@ else:
                     tab5.render_tab5(df_period, selected_buy_traders, selected_sell_traders)
 
                 with tab6_:
-                    tab6.render_tab6(df_period, N)
+                    tab6.render_tab6(df, N)
 
                 with tab7_:
                     # 輸入要追蹤的券商名稱，允許多選
@@ -137,7 +137,10 @@ else:
                     )
                     st.session_state.selected_track_traders = selected_track_traders
 
-                    tab7.render_tab7(df_period, selected_track_traders)
+                    tab7.render_tab7(df, selected_track_traders)
                     
                 with tab8_:
-                    tab8.render_tab8(df_period, N)
+                    tab8.render_tab8(df, N)
+                with tab9_:
+                    tab9.render_tab9(df, N)
+
